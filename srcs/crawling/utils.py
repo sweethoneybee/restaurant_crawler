@@ -11,11 +11,12 @@ def logging(*msg):
         f.close()
         return
 
-    data = ""
+    data = time.strftime('%c', time.localtime(time.time())) + " "
     for word in msg:
         data += word
         data += " "
 
+    print(data)
     data += "\n"
     f.write(data)
     f.close()

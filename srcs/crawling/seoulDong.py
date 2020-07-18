@@ -34,8 +34,11 @@ def seoul_dong_api(API_KEY, pagestart, pageend):
             dongInfo["DONG"] = dong["DONG"]
             if dongInfo["JACHIGU"] == "합계" or dongInfo["DONG"] == "소계":
                 continue
+
+            dongInfo["DONG"] = dongInfo["DONG"].replace("·", ",")
             array.append(dongInfo)
             rId += 1
+
         with open("../../dong_json/seoul_dong.json", "w") as json_file:
             json.dump(array, json_file, ensure_ascii=False)
 
