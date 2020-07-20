@@ -1,7 +1,6 @@
 import requests
 import json
 import time
-import random
 import utils
 import sys
 
@@ -23,8 +22,7 @@ def createMenu(menus):
     return results
 
 
-def naver_crawling(query, fileName):
-    rId = 1
+def naver_crawling(query, fileName, rId):
     array = []
 
     # for page in range(1, 4):
@@ -81,52 +79,53 @@ def naver_crawling(query, fileName):
 
 
 def naver_crawling_with_dong():
+    # PK
+    rId = 1
+    # 출력용
     numberOfRestaurant = 0
     numberOfDong = 0
-    with open("../../dong_json/seoul_dong.json", "r") as json_file:
-        json_data = json.load(json_file)
+    crawlCount = 0
+
+    json_data = utils.readJsonFile("../../dong_json/seoul_dong.json")
+    numberOfDong = len(json_data)
+
+    utils.logging("크롤링 시작!")
+    indexNum = utils.readCrawlIndex()
+    for i in range(indexNum, len(json_data)):
+        dong = json_data[i]
+        dongName = dong["DONG"]
+        query = dongName + " 식당"
+
+        fileName = dong["JACHIGU"] + "_" + dong["DONG"]
+        utils.logging("======== \'", query,
+                      "\'의 json을 긁어오기 시작함 ========")
+        numberOfRestaurant += naver_crawling(query, fileName, rId)
+
+        crawlCount += 1
+        rId += 1
         numberOfDong = len(json_data)
-        crawlCount = 0
-        utils.logging("크롤링 시작!")
-        # for dong in json_data:
-        # 나눠서 긁어오기 위해 range의 값을 시작값을 조정해주면서 함.
-        # 현재 199까지 긁음.
-        # 새로 시작한 것 56까지 긁음
-        indexNum = utils.readCrawlIndex()
-        for i in range(indexNum, len(json_data)):
-            dong = json_data[i]
-            dongName = dong["DONG"]
-            query = dongName + " 식당"
+        utils.logging(str(i), "번째 동 긁어오기 성공")
+        utils.saveFilename(fileName)
+        utils.saveCrawlIndex(i)
 
-            fileName = dong["JACHIGU"] + "_" + dong["DONG"]
-            utils.logging("======== \'", query,
-                          "\'의 json을 긁어오기 시작함 ========")
-            numberOfRestaurant += naver_crawling(query, fileName)
-
-            crawlCount += 1
+        # 한 사이클에 30개의 동씩 긁어옴
+        if crawlCount >= 30:
             numberOfDong = len(json_data)
-            utils.logging(str(i), "번째 동 긁어오기 성공")
-            utils.saveFilename(fileName)
-            utils.saveCrawlIndex(i)
+            utils.logging("")
+            utils.logging("총", str(numberOfRestaurant), "개의 식당을 찾았습니다.")
+            utils.logging(str(i), "인덱스까지 긁음")
+            utils.logging("다음 크롤링 싸이클을 위해 60분 대기 중...")
+            time.sleep(60 * 60)
 
-            if crawlCount >= 30:
-                numberOfDong = len(json_data)
-                utils.logging("")
-                utils.logging("총", str(numberOfRestaurant), "개의 식당을 찾았습니다.")
-                utils.logging(str(i), "인덱스까지 긁음")
-                utils.logging("다음 크롤링 싸이클을 위해 60분 대기 중...")
-                time.sleep(60 * 60)
+            # 재시작전 변수 초기화
+            numberOfDong = len(json_data)
+            crawlCount = 0
+            numberOfRestaurant = 0
+            utils.logging("크롤링 재시작!")
+            continue
 
-                # 재시작전 변수 초기화
-                numberOfDong = len(json_data)
-                crawlCount = 0
-                numberOfRestaurant = 0
-                utils.logging("크롤링 재시작!")
-                continue
-
-            # termTime = random.randint(11, 23)
-            termTime = 45
-            utils.logging("다음 동을 긁기 전", str(termTime), "초 기다리는 중...")
-            time.sleep(termTime)
+        termTime = 45
+        utils.logging("다음 동을 긁기 전", str(termTime), "초 기다리는 중...")
+        time.sleep(termTime)
 
     utils.logging(str(numberOfDong), "개의 대상에 대해 크롤링을 마쳤습니다!")

@@ -1,4 +1,5 @@
 import time
+import json
 
 
 def logging(*msg):
@@ -51,3 +52,10 @@ def saveFilename(name):
     f.write(data)
     f.close()
     return
+
+
+def readJsonFile(filepath):
+    f = open(filepath, "r")
+    jsonData = json.load(f)
+    f.close()
+    return jsonData
