@@ -26,8 +26,8 @@ def setMetaCategory(metaCategory):
             catFlag = 0
             tempCat = []
             for cat in data[i]["category"]:
-                # 부적절한 카테고리의 식당은 '-'로 표기해서 거르기
-                if metaCategory[cat] == '-':
+                # 부적절한 카테고리의 식당은 None으로 표기해서 거르기
+                if metaCategory[cat] == None:
                     continue
                 tempCat.append(metaCategory[cat])
                 catFlag += 1

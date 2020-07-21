@@ -4,23 +4,63 @@ import json
 import utils
 
 
+def readFilePath():
+    f = open("./seoulRestaurantPath.txt", "r")
+    data = f.read()
+    f.close()
+    return data
+
+# 받은 객체 잘 정제해서
+# sql문 날릴 때 오류 없는 객체로 만들어서 리턴하기
+
+
+def checkRestaurantString(restaurant):
+    # 리턴 예정 변수
+    ret = {}
+
+    ret["metaCategory"] = restaurant["metaCategory"]
+    ret["restaurant_id"] = restaurant["rId"]
+    ret["name"] = restaurant["name"]
+    ret["naver_review_count"] = restaurant["numberOfNaverReviews"]
+    ret["opening_hours"] = restaurant["openTime"]
+    ret["phone_number"] = restaurant["tel"]
+    ret["latitude"] = restaurant["lat"]
+    ret["longitude"] = restaurant["lng"]
+    ret["address"] = restaurant["address"]
+    ret["road_address"] = restaurant["roadAddress"]
+    ret["naver_id"] = restaurant["naverId"]
+    ret["thum_url"] = restaurant["thumUrl"]
+
+    ret["name"] = ret["name"].replace("'", "")
+    if ret["opening_hours"] != None:
+        ret["opening_hours"] = ret["opening_hours"].replace("'", "")
+    if ret["address"] != None:
+        ret["address"] = ret["address"].replace("'", "")
+    if ret["road_address"] != None:
+        ret["road_address"] = ret["road_address"].replace("'", "")
+    if ret["thum_url"] == None:
+        ret["thum_url"] = "https://cdn.pixabay.com/photo/2020/06/29/10/55/pizza-5352320__480.png"
+
+    return ret
+
+
 def insertIntoRestaurant(curs, results):
     for restaurant in results:
-        # 단란주점 혹은 호두과자 등 식당에 부적합 데이터 거르기
-        metaCategory = restaurant["metaCategory"]
-        if metaCategory == None:
-            continue
 
-        restaurant_id = restaurant["rId"]
-        name = restaurant["name"]
-        naver_review_count = restaurant["numberOfNaverReviews"]
-        opening_hours = restaurant["openTime"]
-        phone_number = restaurant["tel"]
-        latitude = restaurant["lat"]
-        longitude = restaurant["lng"]
-        address = restaurant["address"]
-        road_address = restaurant["roadAddress"]
-        naver_id = restaurant["naverId"]
+        ret = checkRestaurantString(restaurant)
+        # if restaurant["rId"] == 22947:
+        #     print("metaCategory:", metaCategory)
+        #     print("restaurant_id:", restaurant_id)
+        #     print("name:", name)
+        #     print("naver_review_count:", naver_review_count)
+        #     print("opening_hours:", opening_hours)
+        #     print("phone_number:", phone_number)
+        #     print("latitude:", latitude)
+        #     print("longitude:", longitude)
+        #     print("address:", address)
+        #     print("road_address:", road_address)
+        #     print("naver_id:", naver_id)
+        #     print("thum_url:", thum_url)
 
         sql = f'''insert into restaurant(
             restaurant_id,
@@ -32,10 +72,32 @@ def insertIntoRestaurant(curs, results):
             longitude,
             address,
             road_address,
-            naver_id)
-            values ('{restaurant_id}', '{name}', '{naver_review_count}', '{opening_hours}', '{phone_number}', '{latitude}', '{longitude}', '{address}', '{road_address}', '{naver_id}')'''
+            naver_id,
+            thum_url)
+            values (
+                '{ret["restaurant_id"]}',
+                '{ret["name"]}',
+                '{ret["naver_review_count"]}',
+                '{ret["opening_hours"]}',
+                '{ret["phone_number"]}',
+                '{ret["latitude"]}',
+                '{ret["longitude"]}',
+                '{ret["address"]}',
+                '{ret["road_address"]}',
+                '{ret["naver_id"]}',
+                '{ret["thum_url"]}')'''
 
-        curs.execute(sql)
+        print("rId:", restaurant["rId"], "Restaurant 테이블 삽입")
+        try:
+            curs.execute(sql)
+        except pymysql.err.IntegrityError:
+            print("insertIntoRestaurant 에서 PK 중복 발생. rId:",
+                  ret['restaurant_id'], "naverId:", ret['naver_id'])
+            continue
+        except Exception as e:
+            print(e)
+            print(ret)
+            raise Exception("insertIntoRestaurant 에서 오류 발생")
 
 
 def categoryQrySelect(qryIndex, restaurant_id):
@@ -90,10 +152,23 @@ def insertIntoRestaurantCategory(curs, data):
 
         if len(qryIndex) >= 2 and qryIndex[0] != qryIndex[1]:
             qrySentences.append(categoryQrySelect(qryIndex[1], rId))
+        if len(qryIndex) == 0:
+            print("qryIndex 길이가 0")
+            print(restaurant)
         qrySentences.append(categoryQrySelect(qryIndex[0], rId))
 
-        for qry in qrySentences:
-            curs.execute(qry)
+        print("rId:", restaurant["rId"], "Restaurant_Category 테이블 삽입")
+        try:
+            for qry in qrySentences:
+                curs.execute(qry)
+
+        except pymysql.err.IntegrityError:
+            print("wat?")
+            print("insertIntoRestaurantCategory에서 PK 중복 발생. rId:",
+                  restaurant["rId"], "naverId:", restaurant["naverId"])
+            continue
+        except:
+            raise Exception("insertIntoRestaurantCategory 에서 오류 발생")
 
 
 def insertIntoCategory(curs):
@@ -110,8 +185,14 @@ def insertIntoCategory(curs):
         "insert into category(category_id, name) values(10, '패스트푸드')",
         "insert into category(category_id, name) values(11, '치킨')",
         "insert into category(category_id, name) values(12, '기타')"]
-    for qry in qrySentences:
-        curs.execute(qry)
+    try:
+        for qry in qrySentences:
+            curs.execute(qry)
+    except pymysql.err.IntegrityError:
+        print("insertIntoCategory에서 PK 중복 발생")
+        return
+    except:
+        raise Exception("insertIntoCategory 에서 오류 발생")
 
 
 def insertIntoRestaurantPhoto(curs, data):
@@ -121,43 +202,62 @@ def insertIntoRestaurantPhoto(curs, data):
         # 없을경우 임시 주소
         if path == None:
             path = "https://cdn.pixabay.com/photo/2020/06/29/10/55/pizza-5352320__480.png"
-        filename = restaurant["name"] + "_thum"
+        filename = restaurant["name"].replace("'", "") + "_thum"
 
         qry = f"insert into restaurant_photo (restaurant_id, path, filename) values ('{rId}', '{path}', '{filename}')"
-        curs.execute(qry)
+
+        print("rId:", restaurant["rId"], "Restaurant_Photo 테이블 삽입")
+        try:
+            curs.execute(qry)
+        except pymysql.err.IntegrityError:
+            print("insertIntoRestuarnatPhoto 에서 PK 중복 발생. rId:",
+                  restaurant["rId"], "naverId:", restaurant["naverId"])
+            continue
+        except Exception as e:
+            print(e)
+            print("rId:", rId)
+            print("path:", path)
+            print("filename:", filename)
+            raise Exception("insertIntoRestuarnatPhoto 에서 오류 발생")
 
 
 def updateDB():
+    fpath = readFilePath()
+    print("DB 연결 중...")
     # DB 연결
     conn = pymysql.connect(host='recoderdbinstance.crnm0s8emitk.ap-northeast-2.rds.amazonaws.com',
                            user='recoder', password='shdudtka123', db='sprint1', charset='utf8')
     curs = conn.cursor()
 
-    f = open('../../filename/filename', 'r')
-    names = f.read().split()
-    f.close()
-
+    # insert 시작
+    print("Insert 시작")
     # insertIntoCategory(curs)
-    # 넣을 동 개수 조절용
-    count = 0
-    for filename in names:
-        fpath = "../../restaurant_json/" + filename
-        jsonData = utils.readJsonFile(fpath)
+    # conn.commit()
+    jsonData = utils.readJsonFile(fpath)
+    if jsonData == None:
+        conn.close()
+        print("jsonData를 받아오지 못했습니다. 프로그램 종료.")
+        return
+    try:
+        # insertIntoRestaurant(curs, jsonData)
+        # conn.commit()
+        # insertIntoRestaurantCategory(curs, jsonData)
+        # conn.commit()
+        insertIntoRestaurantPhoto(curs, jsonData)
+        conn.commit()
+        print("insert 완료")
+    except Exception as e:
+        print(e)
+        print("sql문 실행 중 오류 발생. 프로그램 종료.")
+        conn.commit()
+    finally:
+        conn.close()
+        return
 
-        try:
-            print(filename, " insert 시작")
-            # Update Restaurant table
-            insertIntoRestaurant(curs, jsonData)
-            insertIntoRestaurantCategory(curs, jsonData)
-            insertIntoRestaurantPhoto(curs, jsonData)
+    # DB 닫기
+    conn.close()
+    print("DB 닫기")
 
-            print(filename, " insert 완료")
-            count += 1
-            if count >= 10:
-                break
-        except Exception as e:
-            print(e)
-            continue
 
-    # DB닫기
-    conn.commit()
+# PK 에러
+# pymysql.err.IntegrityError

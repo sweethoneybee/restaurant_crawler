@@ -40,6 +40,7 @@ def readCrawlIndex():
     if type(data) is str:
         data = int(data)
     data += 1
+    f.close()
     return data
 
 
