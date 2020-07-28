@@ -1,0 +1,1 @@
+./integratedRestaurants/화양동_2572.json
