@@ -1,3 +1,4 @@
 import mysqlQuery
 
-mysqlQuery.updateDB()
+if __name__ == "__main__":
+    mysqlQuery.updateDB()

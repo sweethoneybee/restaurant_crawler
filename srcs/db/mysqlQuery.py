@@ -45,6 +45,8 @@ def checkRestaurantString(restaurant):
 
 
 def insertIntoRestaurant(curs, results):
+    # 삽입 개수 조절용
+    i = 0
     for restaurant in results:
 
         ret = checkRestaurantString(restaurant)
@@ -98,6 +100,11 @@ def insertIntoRestaurant(curs, results):
             print(e)
             print(ret)
             raise Exception("insertIntoRestaurant 에서 오류 발생")
+        # 삽입 개수 조절용
+        finally:
+            i += 1
+            if i >= 300:
+                return
 
 
 def categoryQrySelect(qryIndex, restaurant_id):
@@ -119,8 +126,10 @@ def categoryQrySelect(qryIndex, restaurant_id):
 
 
 def insertIntoRestaurantCategory(curs, data):
-
+    # 삽입 개수 조절용
+    i = 0
     for restaurant in data:
+
         qrySentences = []
         qryIndex = []
         rId = restaurant["rId"]
@@ -169,6 +178,11 @@ def insertIntoRestaurantCategory(curs, data):
             continue
         except:
             raise Exception("insertIntoRestaurantCategory 에서 오류 발생")
+        # 삽입 개수 조절용
+        finally:
+            i += 1
+            if i >= 300:
+                return
 
 
 def insertIntoCategory(curs):
@@ -196,6 +210,9 @@ def insertIntoCategory(curs):
 
 
 def insertIntoRestaurantPhoto(curs, data):
+    # 삽입 개수 조절용
+    i = 0
+
     for restaurant in data:
         rId = restaurant["rId"]
         path = restaurant["thumUrl"]
@@ -219,30 +236,35 @@ def insertIntoRestaurantPhoto(curs, data):
             print("path:", path)
             print("filename:", filename)
             raise Exception("insertIntoRestuarnatPhoto 에서 오류 발생")
+        # 삽입 개수 조절용
+        finally:
+            i += 1
+            if i >= 300:
+                return
 
 
 def updateDB():
     fpath = readFilePath()
     print("DB 연결 중...")
     # DB 연결
-    conn = pymysql.connect(host='recoderdbinstance.crnm0s8emitk.ap-northeast-2.rds.amazonaws.com',
-                           user='recoder', password='shdudtka123', db='sprint1', charset='utf8')
+    conn = pymysql.connect(host='recoder-mysql.cz5tw7zear7i.ap-northeast-2.rds.amazonaws.com',
+                           user='recoder', password='recoder1234', db='recoder_db', charset='utf8')
     curs = conn.cursor()
 
     # insert 시작
     print("Insert 시작")
-    # insertIntoCategory(curs)
-    # conn.commit()
+    insertIntoCategory(curs)
+    conn.commit()
     jsonData = utils.readJsonFile(fpath)
     if jsonData == None:
         conn.close()
         print("jsonData를 받아오지 못했습니다. 프로그램 종료.")
         return
     try:
-        # insertIntoRestaurant(curs, jsonData)
-        # conn.commit()
-        # insertIntoRestaurantCategory(curs, jsonData)
-        # conn.commit()
+        insertIntoRestaurant(curs, jsonData)
+        conn.commit()
+        insertIntoRestaurantCategory(curs, jsonData)
+        conn.commit()
         insertIntoRestaurantPhoto(curs, jsonData)
         conn.commit()
         print("insert 완료")
