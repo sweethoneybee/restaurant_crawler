@@ -3,7 +3,9 @@ import json
 
 
 def logging(*msg):
-    f = open("./crawlingLog.txt", "a")
+    logFilename = time.strftime(
+        '%Y-%m-%d', time.localtime(time.time())) + "_logs"
+    f = open("./logs/" + logFilename, "a")
 
     if msg == None:
         data = time.strftime('%c', time.localtime(
@@ -14,7 +16,7 @@ def logging(*msg):
 
     data = time.strftime('%c', time.localtime(time.time())) + " "
     for word in msg:
-        data += word
+        data += str(word)
         data += " "
 
     print(data)
